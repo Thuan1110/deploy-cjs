@@ -1,0 +1,65 @@
+.staff_home_container {
+    width              : auto;
+    height             : 93vh;
+    margin-left        : 16.4%;
+    display            : flex;
+    justify-content    : center;
+    /* background-color: #e4e6e7; */
+    background-color   : #f3f5f9;
+}
+
+.staff_home {
+    width             : 1000px;
+    height            : fit-content;
+    /* border         : 2px solid black; */
+    /* border-bottom  : 2px solid black;
+    border-left       : 2px solid black;
+    border-right      : 2px solid black; */
+    margin-top        : 20px;
+    -webkit-box-shadow: 0px -2px 20px -6px rgba(125, 125, 125, 1);
+    -moz-box-shadow   : 0px -2px 20px -6px rgba(125, 125, 125, 1);
+    box-shadow        : 0px -2px 20px -6px rgba(125, 125, 125, 1);
+}
+
+/* .search_by_date {
+    margin-top: 40px;
+  } */
+
+.statistics_reports {
+    width         : 1000px;
+    height        : auto;
+    /* border     : 1px solid black; */
+    margin-top    : 20px;
+    display       : flex;
+    flex-direction: row;
+}
+
+.total_reports {
+    width          : 280px;
+    height         : 120px;
+    display        : flex;
+    justify-content: space-evenly;
+    align-items    : center;
+
+    background-color: brown;
+}
+
+.draft_reports {
+    width           : 280px;
+    height          : 120px;
+    display         : flex;
+    justify-content : space-evenly;
+    align-items     : center;
+    background-color: grey;
+    margin-left     : 50px;
+}
+
+/* .pending_reports {
+    width: 280px;
+    height: 120px;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+  
+    background-color: darkgoldenrod;
+  } */

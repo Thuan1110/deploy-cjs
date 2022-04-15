@@ -1,0 +1,65 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "PT Sans", sans-serif;
+  
+}
+
+.main_body_login {
+  width: 100%;
+  height: 100%;
+  background-color: cadetblue;
+  position: absolute;
+
+  
+}
+
+/* .main_body img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  position: absolute;
+} */
+.login_form_container {
+  width: 500px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  background-color: white;
+  border-radius: 10px;
+  margin: 150px 35%;
+}
+
+.login_form_container h2 {
+  font-size: 30px;
+  /* color: #086fc9; */
+  color: black;
+}
+.login_form {
+  width: fit-content;
+  height: fit-content;
+
+  display: flex;
+  flex-direction: column;
+}
+.sign_in_button {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  margin-top: 10px;
+}
+.forgot_password {
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  margin-top: 10px;
+}
+.forgot_password p:hover {
+  text-decoration: underline;
+  color: darkblue;
+  cursor: pointer;
+}

@@ -1,0 +1,19 @@
+.header {
+  width: auto;
+  height: 50px;
+  position: sticky; /* Fixed Sidebar (stay in place on scroll) */
+  z-index: 1; /* Stay on top */
+  top: 0; /* Stay at the top */
+
+  border: 1px solid #f3f5f9;
+
+  display: flex;
+  justify-content: right;
+  /* background-color: #e4e6e7; */
+  background-color: white;
+  padding-right: 50px;
+}
+.header p:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}
