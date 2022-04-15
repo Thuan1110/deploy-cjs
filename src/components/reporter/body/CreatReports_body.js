@@ -103,6 +103,7 @@ function CreateReports_body() {
       setOpenAlert(true);
       setMessage("Created successfully!");
       setSeverity("success");
+      history.goBack();
     } else if (response.status === 400) {
       const data = await response.json();
       const error = data.errors;

@@ -38,9 +38,16 @@ import { url } from "../../../url";
 import "../css/reporterDetail_body.css";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTheme } from "@mui/system";
+import { styled } from "@mui/material/styles";
+import { useSnackbar } from "notistack";
+
+const Input = styled("input")({
+  display: "none",
+});
 
 function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
   const { setMessage, setSeverity, setOpenAlert } = useContext(AlertContext);
+  const { enqueueSnackbar } = useSnackbar();
   const token = sessionStorage.getItem("token");
   const decoded = jwt_decode(token);
   const history = useHistory();
@@ -116,6 +123,11 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
   const [loading, setLoading] = useState(false);
   const [defaultData, setDefaultData] = useState({ title: "", content: "" });
 
+  const [fileUrls, setFileUrls] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [videoFiles, setVideoFiles] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
+
   const handleGoBackFromEdit = (e) => {
     if (isFormChanged) {
       setOpenConfirm(true);
@@ -133,10 +145,10 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
       try {
         response = await fetch(
           url +
-          "Report/attachments?folderPath=" +
-          folderPath +
-          "&fileName=" +
-          uniqueName,
+            "Report/attachments?folderPath=" +
+            folderPath +
+            "&fileName=" +
+            uniqueName,
           {
             method: "get",
             headers: {
@@ -258,11 +270,12 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
     });
 
     if (response.status >= 200 && response.status <= 299) {
+      setOpenSendReportAlertDialog(false);
+      setLoading(false);
+      await getReportDetail();
       setOpenAlert(true);
       setMessage("Sent Successfully!");
       setSeverity("success");
-      setOpenSendReportAlertDialog(false);
-      await getReportDetail();
     }
   };
   /******************************************** */
@@ -305,6 +318,9 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
       setSeverity("success");
       setOpenSaveDraftAlertDialog(false);
       setFormChangedState(false);
+      setImageFiles([]);
+      setVideoFiles([]);
+      setAudioFiles([]);
       await getReportDetail();
     }
 
@@ -364,72 +380,78 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
     return null;
   };
   //--------------------------------------------------
-  const [savedUniqueName, setSavedUniqueName] = useState("");
-  const [savedFileSizeImage, setFileSizeImage] = useState("");
-  const [savedFileImage, setSavedFileImage] = useState("");
-
-  const [files, setFiles] = useState([]);
-  const [fileUrls, setFileUrls] = useState([]);
 
   //select file
-  const handleOnChangeFile = async (e) => {
+  const handleOnChangeFile = async (e, fileType) => {
     const files = e.target.files;
-
-    setFormChangedState(true);
-    setFiles(files);
-
     const fileUrls = [];
+    const acceptedFiles = [];
 
-    for (const image of files) {
-      const url = URL.createObjectURL(image);
+    for (const file of files) {
+      const fileSize = file.size / 1000000;
 
-      fileUrls.push(url);
+      if (fileSize > 100) {
+        enqueueSnackbar(`File ${file.name} exceed more than 100MB`, {
+          variant: "warning",
+        });
+      } else {
+        const url = URL.createObjectURL(file);
+        fileUrls.push(url);
+        acceptedFiles.push(file);
+      }
     }
 
-    console.log("debug imageUrls", fileUrls);
-    console.log("debug imageList", listImageUrls);
+    if (fileType === "audio") {
+      setAudioFiles(acceptedFiles);
+    }
+
+    if (fileType === "image") {
+      setImageFiles(acceptedFiles);
+    }
+
+    if (fileType === "video") {
+      setVideoFiles(acceptedFiles);
+    }
 
     setFileUrls(fileUrls);
+    setFormChangedState(true);
   };
 
   const resetImage = () => {
     refImage.current.value = "";
     setFormChangedState(false);
+    setImageFiles([]);
   };
   const resetVideo = () => {
     refVideo.current.value = "";
     setFormChangedState(false);
+    setVideoFiles([]);
   };
 
   const resetAudio = () => {
     refAudio.current.value = "";
     setFormChangedState(false);
+    setAudioFiles([]);
   };
 
   const uploadFiles = async () => {
-    if (files.length) {
-      for (const file of files) {
-        await uploadFile(file);
+    if (imageFiles.length) {
+      for (const file of imageFiles) {
+        await handleUploadFile(file);
       }
     }
-  };
 
-  const uploadFile = async (file) => {
-    const uniqueName = file.name;
-    const fileSize = file.size / 1000000;
-    const maximumSize = 100;
-
-    setSavedUniqueName(uniqueName);
-    setFileSizeImage(fileSize);
-    setSavedFileImage(file);
-
-    if (fileSize > maximumSize) {
-      setMessage("File size cannot exceed more than 100MB");
-      setSeverity("warning");
-      setOpenAlert(true);
+    if (videoFiles.length) {
+      for (const file of videoFiles) {
+        await handleUploadFile(file);
+      }
     }
 
-    await handleUploadFile(file);
+    if (audioFiles.length) {
+      for (const file of audioFiles) {
+        await handleUploadFile(file);
+      }
+    }
   };
 
   //--------------------------------------------------
@@ -812,95 +834,95 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
               </div>
             </div>
           ) : //status 3
-            reportDetail.status == "3" ? (
-              <div>
-                <div className="report_detail_body">
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <div className="report_detail_title">
-                      <p
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "bold",
-                          marginTop: "13px",
-                        }}
-                      >
-                        Title
-                      </p>
+          reportDetail.status == "3" ? (
+            <div>
+              <div className="report_detail_body">
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div className="report_detail_title">
+                    <p
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        marginTop: "13px",
+                      }}
+                    >
+                      Title
+                    </p>
+                    <div
+                      style={{
+                        marginLeft: "20px",
+                      }}
+                    >
                       <div
                         style={{
                           marginLeft: "20px",
+                          border: "0.5px solid #7f7f7f",
+                          borderRadius: "4px",
+                          width: "430px",
+                          height: "45px",
+                          display: "flex",
+                          alignItems: "center",
                         }}
                       >
-                        <div
-                          style={{
-                            marginLeft: "20px",
-                            border: "0.5px solid #7f7f7f",
-                            borderRadius: "4px",
-                            width: "430px",
-                            height: "45px",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <p className="title_text">
-                            {ReactHtmlParser(reportDetail.title)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="report_detail_status">
-                      <p
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "bold",
-                          marginTop: "10px",
-                        }}
-                      >
-                        Status
-                      </p>
-                      <div
-                        style={{
-                          marginLeft: "20px",
-                        }}
-                      >
-                        <h3 style={{ color: "darkgreen", marginTop: "8px" }}>
-                          Approved
-                        </h3>
+                        <p className="title_text">
+                          {ReactHtmlParser(reportDetail.title)}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <div className="report_detail_date">
-                      <p
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "bold",
-                          marginTop: "13px",
-                        }}
-                      >
-                        Date
-                      </p>
-                      <div
-                        style={{
-                          marginLeft: "33px",
-                        }}
-                      >
-                        <TextField
-                          id="Date"
-                          size="small"
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          name="Date"
-                          variant="outlined"
-                          value={createdDate}
-                          style={{
-                            backgroundColor: "white",
-                          }}
-                        />
-                      </div>
+                  <div className="report_detail_status">
+                    <p
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        marginTop: "10px",
+                      }}
+                    >
+                      Status
+                    </p>
+                    <div
+                      style={{
+                        marginLeft: "20px",
+                      }}
+                    >
+                      <h3 style={{ color: "darkgreen", marginTop: "8px" }}>
+                        Approved
+                      </h3>
                     </div>
-                    {/* <div className="editor">
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div className="report_detail_date">
+                    <p
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        marginTop: "13px",
+                      }}
+                    >
+                      Date
+                    </p>
+                    <div
+                      style={{
+                        marginLeft: "33px",
+                      }}
+                    >
+                      <TextField
+                        id="Date"
+                        size="small"
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        name="Date"
+                        variant="outlined"
+                        value={createdDate}
+                        style={{
+                          backgroundColor: "white",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {/* <div className="editor">
                       <p
                         style={{
                           fontSize: "18px",
@@ -927,498 +949,546 @@ function ReporterDetail_body({ isFormChanged, setFormChangedState }) {
                         />
                       </div>
                     </div> */}
+                </div>
+              </div>
+              {/* //content */}
+              <div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Content
+                </p>
+                <div className="report_detail_content">
+                  <div
+                    style={{
+                      height: "auto",
+                      display: "flex",
+                    }}
+                  >
+                    <p className="title_content">
+                      {ReactHtmlParser(reportDetail.content)}
+                    </p>
                   </div>
                 </div>
-                {/* //content */}
-                <div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Content
-                  </p>
-                  <div className="report_detail_content">
-                    <div
-                      style={{
-                        height: "auto",
-                        display: "flex",
-                      }}
-                    >
-                      <p className="title_content">
-                        {ReactHtmlParser(reportDetail.content)}
-                      </p>
-                    </div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Images
+                </p>
+                {reportDetail.listFile ? (
+                  <div> {renderImages}</div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "13px" }}>There are no items here</p>
                   </div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Images
-                  </p>
+                )}
+
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Videos
+                </p>
+
+                {reportDetail.listFile ? (
+                  <div> {renderVideos}</div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "13px" }}>There are no items here</p>
+                  </div>
+                )}
+
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Audios
+                </p>
+                {reportDetail.listFile ? (
+                  <div> {renderAudios}</div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "13px" }}>There are no items here</p>
+                  </div>
+                )}
+
+                <div className="report_detail_blank_space"></div>
+              </div>
+            </div>
+          ) : reportDetail.status == "1" ? (
+            <div>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  marginTop: "30px",
+                }}
+              >
+                Title*
+              </p>
+              <div className="create_title">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={reportDetail.title}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setTitle(data);
+                    checkTitleChanged(data);
+                    console.log({ event, editor, title });
+                  }}
+                  onReady={(editor) => {
+                    setTitle(reportDetail.title);
+                  }}
+                />
+              </div>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  marginTop: "30px",
+                }}
+              >
+                Content*
+              </p>
+              <div className="create_content">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={reportDetail.content}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setContent(data);
+                    checkContentChanged(data);
+
+                    console.log({ event, editor, content });
+                  }}
+                  onReady={(editor) => {
+                    setContent(reportDetail.content);
+                  }}
+                />
+              </div>
+              {/* //content */}
+              <div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Images
+                </p>
+                <div className="image">
+                  <label htmlFor="contained-button-image">
+                    <Input
+                      accept="image/*"
+                      id="contained-button-image"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "image")}
+                      ref={refImage}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {imageFiles.length === 0
+                    ? "No file chosen"
+                    : `${imageFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetImage}>Reset</button>
                   {reportDetail.listFile ? (
                     <div> {renderImages}</div>
                   ) : (
                     <div style={{ textAlign: "center" }}>
-                      <p style={{ fontSize: "13px" }}>There are no items here</p>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
                     </div>
                   )}
+                </div>
 
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Videos
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
                   </p>
+                </div>
 
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Videos
+                </p>
+                <div className="video">
+                  <label htmlFor="contained-button-video">
+                    <Input
+                      accept="video/*"
+                      id="contained-button-video"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "video")}
+                      ref={refVideo}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {videoFiles.length === 0
+                    ? "No file chosen"
+                    : `${videoFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetVideo}>Reset</button>
                   {reportDetail.listFile ? (
                     <div> {renderVideos}</div>
                   ) : (
                     <div style={{ textAlign: "center" }}>
-                      <p style={{ fontSize: "13px" }}>There are no items here</p>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
                     </div>
                   )}
+                </div>
 
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Audios
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
                   </p>
+                </div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Audios
+                </p>
+                <div className="audio">
+                  <label htmlFor="contained-button-audio">
+                    <Input
+                      accept="audio/*"
+                      id="contained-button-audio"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "audio")}
+                      ref={refAudio}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {audioFiles.length === 0
+                    ? "No file chosen"
+                    : `${audioFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetAudio}>Reset</button>
                   {reportDetail.listFile ? (
                     <div> {renderAudios}</div>
                   ) : (
                     <div style={{ textAlign: "center" }}>
-                      <p style={{ fontSize: "13px" }}>There are no items here</p>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
                     </div>
                   )}
-
-                  <div className="report_detail_blank_space"></div>
                 </div>
-              </div>
-            ) : reportDetail.status == "1" ? (
-              <div>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    marginTop: "30px",
-                  }}
-                >
-                  Title*
-                </p>
-                <div className="create_title">
-                  <CKEditor
-                    editor={ClassicEditor}
-                    data={reportDetail.title}
-                    onChange={(event, editor) => {
-                      const data = editor.getData();
-                      setTitle(data);
-                      checkTitleChanged(data);
-                      console.log({ event, editor, title });
-                    }}
-                    onReady={(editor) => {
-                      setTitle(reportDetail.title);
-                    }}
-                  />
+
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
+                  </p>
                 </div>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    marginTop: "30px",
-                  }}
-                >
-                  Content*
-                </p>
-                <div className="create_content">
-                  <CKEditor
-                    editor={ClassicEditor}
-                    data={reportDetail.content}
-                    onChange={(event, editor) => {
-                      const data = editor.getData();
-                      setContent(data);
-                      checkContentChanged(data);
-
-                      console.log({ event, editor, content });
-                    }}
-                    onReady={(editor) => {
-                      setContent(reportDetail.content);
-                    }}
-                  />
-                </div>
-                {/* //content */}
-                <div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Images
-                  </p>
-                  <div className="image">
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="image/*"
-                      multiple
-                      ref={refImage}
-                    />{" "}
-                    <br />
-                    <br />
-                    <button onClick={resetImage}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderImages}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Videos
-                  </p>
-                  <div className="video">
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="video/*"
-                      multiple
-                      ref={refVideo}
-                    />
-                    <br />
-                    <br />
-                    <button onClick={resetVideo}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderVideos}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Audios
-                  </p>
-                  <div className="audio">
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="audio/*"
-                      multiple
-                      ref={refAudio}
-                    />
-                    <br />
-                    <br />
-                    <button onClick={resetAudio}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderAudios}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-                  <div className="buttons">
-                    <Stack direction="row" spacing={2}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<SendIcon />}
-                        onClick={handleClickOpenSendReportAlertDialog}
+                <div className="buttons">
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<SendIcon />}
+                      onClick={handleClickOpenSendReportAlertDialog}
                       // disabled={isFormChanged}
-                      >
-                        Send Report
-                      </Button>
-
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<SaveIcon />}
-                        onClick={handleClickOpenSaveDraftAlertDialog}
-                        disabled={!isFormChanged}
-                      >
-                        Save Draft
-                      </Button>
-                    </Stack>
-                  </div>
-
-                  <div className="report_detail_blank_space"></div>
-                </div>
-              </div>
-            ) : reportDetail.status == "4" ? (
-              <div>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    marginTop: "30px",
-                  }}
-                >
-                  Title*
-                </p>
-                <div className="create_title">
-                  <CKEditor
-                    editor={ClassicEditor}
-                    data={reportDetail.title}
-                    onChange={(event, editor) => {
-                      const data = editor.getData();
-                      setTitle(data);
-                      checkTitleChanged(data);
-                      console.log({ event, editor, title });
-                    }}
-                    onReady={(editor) => {
-                      setTitle(reportDetail.title);
-                    }}
-                  />
-                </div>
-                <p
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    marginTop: "30px",
-                  }}
-                >
-                  Content*
-                </p>
-                <div className="create_content">
-                  <CKEditor
-                    editor={ClassicEditor}
-                    data={reportDetail.content}
-                    onChange={(event, editor) => {
-                      const data = editor.getData();
-                      setContent(data);
-                      checkContentChanged(data);
-                      console.log({ event, editor, content });
-                    }}
-                    onReady={(editor) => {
-                      setContent(reportDetail.content);
-                    }}
-                  />
-                </div>
-                {/* //content */}
-                <div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Images
-                  </p>
-                  <div className="image">
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="image/*"
-                      multiple
-                      ref={refImage}
-                    />
-                    <br />
-                    <br />
-                    <button onClick={resetImage}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderImages}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Videos
-                  </p>
-                  <div>
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="video/*"
-                      multiple
-                      ref={refVideo}
-                    />
-                    <br />
-                    <br />
-                    <button onClick={resetVideo}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderVideos}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: "18px",
-                      fontWeight: "bold",
-                      marginTop: "30px",
-                    }}
-                  >
-                    Audios
-                  </p>
-                  <div className="audio">
-                    <input
-                      type="file"
-                      className="form-control"
-                      onChange={handleOnChangeFile}
-                      accept="audio/*"
-                      multiple
-                      ref={refAudio}
-                    />
-                    <br />
-                    <br />
-                    <button onClick={resetAudio}>Reset</button>
-                    {reportDetail.listFile ? (
-                      <div> {renderAudios}</div>
-                    ) : (
-                      <div style={{ textAlign: "center" }}>
-                        <p style={{ fontSize: "13px" }}>
-                          There are no items here
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: "5px" }}>
-                    <p style={{ fontSize: "14px" }}>
-                      Maximum upload file size: 100 MB
-                    </p>
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: "bold",
-                        marginTop: "30px",
-                      }}
                     >
-                      Reject Reason
-                    </p>
-                  </div>
+                      Send Report
+                    </Button>
 
-                  <div className="reason_deny">
-                    <TextareaAutosize
-                      maxRows={1}
-                      aria-label="maximum height"
-                      value={reportDetail.rejectReason}
-                      style={{
-                        width: "1000px",
-                        height: "100px",
-                        fontSize: "16px",
-                        paddingTop: "10px",
-                        paddingLeft: "10px",
-                        paddingRight: "10px",
-                        // borderRadius: "10px",
-                        border: "none",
-                      }}
-                    />
-                  </div>
-                  <div className="buttons">
-                    <Stack direction="row" spacing={2}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<SendIcon />}
-                        onClick={handleClickOpenSendReportAlertDialog}
-                      // disabled={isFormChanged}
-                      >
-                        Send Report
-                      </Button>
-
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<SaveIcon />}
-                        onClick={handleClickOpenSaveDraftAlertDialog}
-                        disabled={!isFormChanged}
-                      >
-                        Save Draft
-                      </Button>
-                    </Stack>
-                  </div>
-
-                  <div className="report_detail_blank_space"></div>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<SaveIcon />}
+                      onClick={handleClickOpenSaveDraftAlertDialog}
+                      disabled={!isFormChanged}
+                    >
+                      Save Draft
+                    </Button>
+                  </Stack>
                 </div>
+
+                <div className="report_detail_blank_space"></div>
               </div>
-            ) : null}
+            </div>
+          ) : reportDetail.status == "4" ? (
+            <div>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  marginTop: "30px",
+                }}
+              >
+                Title*
+              </p>
+              <div className="create_title">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={reportDetail.title}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setTitle(data);
+                    checkTitleChanged(data);
+                    console.log({ event, editor, title });
+                  }}
+                  onReady={(editor) => {
+                    setTitle(reportDetail.title);
+                  }}
+                />
+              </div>
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  marginTop: "30px",
+                }}
+              >
+                Content*
+              </p>
+              <div className="create_content">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={reportDetail.content}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setContent(data);
+                    checkContentChanged(data);
+                    console.log({ event, editor, content });
+                  }}
+                  onReady={(editor) => {
+                    setContent(reportDetail.content);
+                  }}
+                />
+              </div>
+              {/* //content */}
+              <div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Images
+                </p>
+                <div className="image">
+                  <label htmlFor="contained-button-image">
+                    <Input
+                      accept="image/*"
+                      id="contained-button-image"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "image")}
+                      ref={refImage}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {imageFiles.length === 0
+                    ? "No file chosen"
+                    : `${imageFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetImage}>Reset</button>
+                  {reportDetail.listFile ? (
+                    <div> {renderImages}</div>
+                  ) : (
+                    <div style={{ textAlign: "center" }}>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
+                  </p>
+                </div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Videos
+                </p>
+                <div>
+                  <label htmlFor="contained-button-video">
+                    <Input
+                      accept="video/*"
+                      id="contained-button-video"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "video")}
+                      ref={refVideo}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {videoFiles.length === 0
+                    ? "No file chosen"
+                    : `${videoFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetVideo}>Reset</button>
+                  {reportDetail.listFile ? (
+                    <div> {renderVideos}</div>
+                  ) : (
+                    <div style={{ textAlign: "center" }}>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
+                  </p>
+                </div>
+                <p
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    marginTop: "30px",
+                  }}
+                >
+                  Audios
+                </p>
+                <div className="audio">
+                  <label htmlFor="contained-button-audio">
+                    <Input
+                      accept="audio/*"
+                      id="contained-button-audio"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "audio")}
+                      ref={refAudio}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {audioFiles.length === 0
+                    ? "No file chosen"
+                    : `${audioFiles.length} files`}
+                  <br />
+                  <br />
+                  <button onClick={resetAudio}>Reset</button>
+                  {reportDetail.listFile ? (
+                    <div> {renderAudios}</div>
+                  ) : (
+                    <div style={{ textAlign: "center" }}>
+                      <p style={{ fontSize: "13px" }}>
+                        There are no items here
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: "5px" }}>
+                  <p style={{ fontSize: "14px" }}>
+                    Maximum upload file size: 100 MB
+                  </p>
+                </div>
+                <div>
+                  <p
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                      marginTop: "30px",
+                    }}
+                  >
+                    Reject Reason
+                  </p>
+                </div>
+
+                <div className="reason_deny">
+                  <TextareaAutosize
+                    maxRows={1}
+                    aria-label="maximum height"
+                    value={reportDetail.rejectReason}
+                    style={{
+                      width: "1000px",
+                      height: "100px",
+                      fontSize: "16px",
+                      paddingTop: "10px",
+                      paddingLeft: "10px",
+                      paddingRight: "10px",
+                      // borderRadius: "10px",
+                      border: "none",
+                    }}
+                  />
+                </div>
+                <div className="buttons">
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<SendIcon />}
+                      onClick={handleClickOpenSendReportAlertDialog}
+                      // disabled={isFormChanged}
+                    >
+                      Send Report
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={<SaveIcon />}
+                      onClick={handleClickOpenSaveDraftAlertDialog}
+                      disabled={!isFormChanged}
+                    >
+                      Save Draft
+                    </Button>
+                  </Stack>
+                </div>
+
+                <div className="report_detail_blank_space"></div>
+              </div>
+            </div>
+          ) : null}
 
           {/* save draft dialog */}
           <Dialog

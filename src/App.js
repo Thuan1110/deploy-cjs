@@ -28,66 +28,81 @@ import CreateReports from "./components/reporter/pages/CreateReports_page";
 import Reporter_Page from "./components/reporter/pages/Reporter_page";
 import AlertDialogProvider from "./Providers/AlertDialogProvider";
 import "react-medium-image-zoom/dist/styles.css";
+import { SnackbarProvider } from "notistack";
 
 function App() {
   return (
-    <AlertDialogProvider>
-      <div>
-        <Router>
-          <Switch>
-            <Route path="/" exact component={Login} />
-            <Route path="/home" exact component={Home} />
+    <SnackbarProvider maxSnack={3}>
+      <AlertDialogProvider>
+        <div>
+          <Router>
+            <Switch>
+              <Route path="/" exact component={Login} />
+              <Route path="/home" exact component={Home} />
 
-            {/* Role Editor */}
-            <Route path="/news" exact component={News} />
-            <Route path="/edit_news" exact component={EditNews} />
-            <Route path="/tasks" exact component={Tasks} />
-            <Route path="/reports" exact component={Reports} />
-            <Route path="/report_detail" exact component={ReportsDetail} />
-            <Route path="/create_news" exact component={CreateNews} />
-            <Route path="/view_news_detail" exact component={ViewNewsDetail} />
-            <Route path="/editor_profile" exact component={EditorProfile} />
+              {/* Role Editor */}
+              <Route path="/news" exact component={News} />
+              <Route path="/edit_news" exact component={EditNews} />
+              <Route path="/tasks" exact component={Tasks} />
+              <Route path="/reports" exact component={Reports} />
+              <Route path="/report_detail" exact component={ReportsDetail} />
+              <Route path="/create_news" exact component={CreateNews} />
+              <Route
+                path="/view_news_detail"
+                exact
+                component={ViewNewsDetail}
+              />
+              <Route path="/editor_profile" exact component={EditorProfile} />
 
-            {/* Role Publisher */}
-            <Route path="/publisher_news" exact component={PublisherNews} />
-            <Route
-              path="/publisher_view_news_detail"
-              exact
-              component={PublisherNewsDetail}
-            />
-            <Route path="/reporters" exact component={Reporters} />
-            <Route path="/reporter_detail" exact component={ReportersDetail} />
-            <Route path="/editors" exact component={Editors} />
-            <Route path="/editor_detail" exact component={EditorsDetail} />
-            <Route
-              path="/publisher_profile"
-              exact
-              component={PublisherProfile}
-            />
+              {/* Role Publisher */}
+              <Route path="/publisher_news" exact component={PublisherNews} />
+              <Route
+                path="/publisher_view_news_detail"
+                exact
+                component={PublisherNewsDetail}
+              />
+              <Route path="/reporters" exact component={Reporters} />
+              <Route
+                path="/reporter_detail"
+                exact
+                component={ReportersDetail}
+              />
+              <Route path="/editors" exact component={Editors} />
+              <Route path="/editor_detail" exact component={EditorsDetail} />
+              <Route
+                path="/publisher_profile"
+                exact
+                component={PublisherProfile}
+              />
 
-            {/* Role Admin */}
-            <Route path="/publishers" exact component={Publishers} />
-            <Route
-              path="/publisher_detail"
-              exact
-              component={PublishersDetail}
-            />
-            <Route path="/editor_admin" exact component={EditorAdmin} />
-            <Route
-              path="/editor_detail_admin"
-              exact
-              component={EditorDetailAdmin}
-            />
-            <Route path="/admin_profile" exact component={AdminProfile} />
+              {/* Role Admin */}
+              <Route path="/publishers" exact component={Publishers} />
+              <Route
+                path="/publisher_detail"
+                exact
+                component={PublishersDetail}
+              />
+              <Route path="/editor_admin" exact component={EditorAdmin} />
+              <Route
+                path="/editor_detail_admin"
+                exact
+                component={EditorDetailAdmin}
+              />
+              <Route path="/admin_profile" exact component={AdminProfile} />
 
-            {/* Role Reporter */}
-            <Route path="/reporter_page" exact component={Reporter_Page} />
-            <Route path="/reporter_detail_page" exact component={ReporterDetail_Page} />
-            <Route path="/create_reports" exact component={CreateReports} />
-          </Switch>
-        </Router>
-      </div>
-    </AlertDialogProvider>
+              {/* Role Reporter */}
+              <Route path="/reporter_page" exact component={Reporter_Page} />
+              <Route
+                path="/reporter_detail_page"
+                exact
+                component={ReporterDetail_Page}
+              />
+              <Route path="/create_reports" exact component={CreateReports} />
+            </Switch>
+          </Router>
+        </div>
+      </AlertDialogProvider>
+    </SnackbarProvider>
   );
 }
 

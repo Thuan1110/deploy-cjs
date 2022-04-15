@@ -66,6 +66,7 @@ function Login_body() {
         }),
       });
       //reporter 1, editor 2, publisher 3, admin 4
+      //reporter 3, editor 5, publisher 6, admin 7
       if (response.status >= 200 && response.status <= 299) {
         const data = await response.json();
         if (data.isSuccess == true) {

@@ -38,9 +38,16 @@ import { url } from "../../../url";
 import "../css/newsDetail_body.css";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTheme } from "@mui/system";
+import { styled } from "@mui/material/styles";
+import { useSnackbar } from "notistack";
+
+const Input = styled("input")({
+  display: "none",
+});
 
 function NewsDetailBody({ isFormChanged, setFormChangedState }) {
   const { setMessage, setSeverity, setOpenAlert } = useContext(AlertContext);
+  const { enqueueSnackbar } = useSnackbar();
   const token = sessionStorage.getItem("token");
   const decoded = jwt_decode(token);
   const history = useHistory();
@@ -115,6 +122,11 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
   const [listAudioUrls, setListAudioUrls] = useState([]);
   const [loading, setLoading] = useState(false);
   const [defaultData, setDefaultData] = useState({ title: "", content: "" });
+
+  const [fileUrls, setFileUrls] = useState([]);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [videoFiles, setVideoFiles] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
 
   const handleGoBackFromEdit = (e) => {
     if (isFormChanged) {
@@ -258,11 +270,12 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
     });
 
     if (response.status >= 200 && response.status <= 299) {
+      setOpenSendNewsAlertDialog(false);
+      setLoading(false);
+      await getNewsDetail();
       setOpenAlert(true);
       setMessage("Sent Successfully!");
       setSeverity("success");
-      setOpenSendNewsAlertDialog(false);
-      await getNewsDetail();
     }
   };
   /******************************************** */
@@ -305,6 +318,9 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
       setSeverity("success");
       setOpenSaveDraftAlertDialog(false);
       setFormChangedState(false);
+      setImageFiles([]);
+      setVideoFiles([]);
+      setAudioFiles([]);
       await getNewsDetail();
     }
 
@@ -364,72 +380,78 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
     return null;
   };
   //--------------------------------------------------
-  const [savedUniqueName, setSavedUniqueName] = useState("");
-  const [savedFileSizeImage, setFileSizeImage] = useState("");
-  const [savedFileImage, setSavedFileImage] = useState("");
-
-  const [files, setFiles] = useState([]);
-  const [fileUrls, setFileUrls] = useState([]);
 
   //select file
-  const handleOnChangeFile = async (e) => {
+  const handleOnChangeFile = async (e, fileType) => {
     const files = e.target.files;
-
-    setFormChangedState(true);
-    setFiles(files);
-
     const fileUrls = [];
+    const acceptedFiles = [];
 
-    for (const image of files) {
-      const url = URL.createObjectURL(image);
+    for (const file of files) {
+      const fileSize = file.size / 1000000;
 
-      fileUrls.push(url);
+      if (fileSize > 100) {
+        enqueueSnackbar(`File ${file.name} exceed more than 100MB`, {
+          variant: "warning",
+        });
+      } else {
+        const url = URL.createObjectURL(file);
+        fileUrls.push(url);
+        acceptedFiles.push(file);
+      }
     }
 
-    console.log("debug imageUrls", fileUrls);
-    console.log("debug imageList", listImageUrls);
+    if (fileType === "audio") {
+      setAudioFiles(acceptedFiles);
+    }
+
+    if (fileType === "image") {
+      setImageFiles(acceptedFiles);
+    }
+
+    if (fileType === "video") {
+      setVideoFiles(acceptedFiles);
+    }
 
     setFileUrls(fileUrls);
+    setFormChangedState(true);
   };
 
   const resetImage = () => {
     refImage.current.value = "";
     setFormChangedState(false);
+    setImageFiles([]);
   };
   const resetVideo = () => {
     refVideo.current.value = "";
     setFormChangedState(false);
+    setVideoFiles([]);
   };
 
   const resetAudio = () => {
     refAudio.current.value = "";
     setFormChangedState(false);
+    setAudioFiles([]);
   };
 
   const uploadFiles = async () => {
-    if (files.length) {
-      for (const file of files) {
-        await uploadFile(file);
+    if (imageFiles.length) {
+      for (const file of imageFiles) {
+        await handleUploadFile(file);
       }
     }
-  };
 
-  const uploadFile = async (file) => {
-    const uniqueName = file.name;
-    const fileSize = file.size / 1000000;
-    const maximumSize = 100;
-
-    setSavedUniqueName(uniqueName);
-    setFileSizeImage(fileSize);
-    setSavedFileImage(file);
-
-    if (fileSize > maximumSize) {
-      setMessage("File size cannot exceed more than 100MB");
-      setSeverity("warning");
-      setOpenAlert(true);
+    if (videoFiles.length) {
+      for (const file of videoFiles) {
+        await handleUploadFile(file);
+      }
     }
 
-    await handleUploadFile(file);
+    if (audioFiles.length) {
+      for (const file of audioFiles) {
+        await handleUploadFile(file);
+      }
+    }
   };
 
   //--------------------------------------------------
@@ -1070,14 +1092,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Images
                 </p>
                 <div className="image">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="image/*"
-                    multiple
-                    ref={refImage}
-                  />{" "}
+                  <label htmlFor="contained-button-image">
+                    <Input
+                      accept="image/*"
+                      id="contained-button-image"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "image")}
+                      ref={refImage}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {imageFiles.length === 0
+                    ? "No file chosen"
+                    : `${imageFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetImage}>Reset</button>
@@ -1108,14 +1138,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Videos
                 </p>
                 <div className="video">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="video/*"
-                    multiple
-                    ref={refVideo}
-                  />
+                  <label htmlFor="contained-button-video">
+                    <Input
+                      accept="video/*"
+                      id="contained-button-video"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "video")}
+                      ref={refVideo}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {videoFiles.length === 0
+                    ? "No file chosen"
+                    : `${videoFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetVideo}>Reset</button>
@@ -1145,14 +1183,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Audios
                 </p>
                 <div className="audio">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="audio/*"
-                    multiple
-                    ref={refAudio}
-                  />
+                  <label htmlFor="contained-button-audio">
+                    <Input
+                      accept="audio/*"
+                      id="contained-button-audio"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "audio")}
+                      ref={refAudio}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {audioFiles.length === 0
+                    ? "No file chosen"
+                    : `${audioFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetAudio}>Reset</button>
@@ -1261,14 +1307,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Images
                 </p>
                 <div className="image">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="image/*"
-                    multiple
-                    ref={refImage}
-                  />
+                  <label htmlFor="contained-button-image">
+                    <Input
+                      accept="image/*"
+                      id="contained-button-image"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "image")}
+                      ref={refImage}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {imageFiles.length === 0
+                    ? "No file chosen"
+                    : `${imageFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetImage}>Reset</button>
@@ -1298,14 +1352,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Videos
                 </p>
                 <div>
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="video/*"
-                    multiple
-                    ref={refVideo}
-                  />
+                  <label htmlFor="contained-button-video">
+                    <Input
+                      accept="video/*"
+                      id="contained-button-video"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "video")}
+                      ref={refVideo}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {videoFiles.length === 0
+                    ? "No file chosen"
+                    : `${videoFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetVideo}>Reset</button>
@@ -1335,14 +1397,22 @@ function NewsDetailBody({ isFormChanged, setFormChangedState }) {
                   Audios
                 </p>
                 <div className="audio">
-                  <input
-                    type="file"
-                    className="form-control"
-                    onChange={handleOnChangeFile}
-                    accept="audio/*"
-                    multiple
-                    ref={refAudio}
-                  />
+                  <label htmlFor="contained-button-audio">
+                    <Input
+                      accept="audio/*"
+                      id="contained-button-audio"
+                      multiple
+                      type="file"
+                      onChange={(e) => handleOnChangeFile(e, "audio")}
+                      ref={refAudio}
+                    />
+                    <Button variant="contained" component="span">
+                      Choose file
+                    </Button>
+                  </label>
+                  {audioFiles.length === 0
+                    ? "No file chosen"
+                    : `${audioFiles.length} files`}
                   <br />
                   <br />
                   <button onClick={resetAudio}>Reset</button>
